@@ -3,7 +3,6 @@ import {
   Wrench,
   ClipboardCheck,
   AlertTriangle,
-  CheckCircle2,
 } from "lucide-react";
 import { KartuKPI } from "./KartuKPI";
 import { GrafikTrenHarian, type TitikTrenKuantitas } from "./GrafikTrenHarian";

@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { rupiah, rupiahRingkas } from "@/lib/format";
-import { TrendingUp, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 export interface TitikTrenKeuangan {
   tanggal: string; // YYYY-MM-DD
@@ -51,7 +51,7 @@ export function GrafikTrenHarian({
   // Format tanggal singkat untuk sumbu X (misal "15 Okt")
   const formatSumbuTanggal = (iso: string) => {
     if (!iso) return "";
-    const [y, m, d] = iso.split("-");
+    const [, m, d] = iso.split("-");
     const namaBulan = [
       "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
       "Jul", "Agu", "Sep", "Okt", "Nov", "Des"

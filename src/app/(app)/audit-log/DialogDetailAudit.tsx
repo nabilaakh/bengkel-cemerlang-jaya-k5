@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, ArrowRight, AlertCircle, FileText } from "lucide-react";
+import { Eye, ArrowRight, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { tanggal } from "@/lib/format";
 import type { Json } from "@/types/database";
 
 export interface LogAuditItem {
@@ -95,7 +94,7 @@ export function DialogDetailAudit({ log }: { log: LogAuditItem }) {
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader className="border-b pb-4">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
+          <DialogTitle className="flex flex-wrap items-center gap-2 mb-1">
             <Badge variant="outline" className={`font-semibold ${getWarnaAksi(log.aksi)}`}>
               {log.aksi}
             </Badge>
@@ -103,11 +102,11 @@ export function DialogDetailAudit({ log }: { log: LogAuditItem }) {
               Tabel <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{log.tabel}</code>
             </span>
             {log.data_id && (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground font-normal">
                 (ID: <span className="font-mono font-medium text-text">{log.data_id}</span>)
               </span>
             )}
-          </div>
+          </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
             <span>
               Waktu: <strong className="text-text">{waktuStr} WIB</strong>

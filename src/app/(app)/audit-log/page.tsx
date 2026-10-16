@@ -285,7 +285,7 @@ export default async function HalamanAuditLog({
                 <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
                   {log.alasan ? (
                     <span className="text-text font-normal italic" title={log.alasan}>
-                      "{log.alasan}"
+                      &ldquo;{log.alasan}&rdquo;
                     </span>
                   ) : (
                     <span className="text-muted-foreground/40">-</span>
