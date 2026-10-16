@@ -776,6 +776,10 @@ export type Database = {
         }
         Returns: string
       }
+      catat_stok_masuk: {
+        Args: { p_item: string; p_jumlah: number; p_keterangan?: string }
+        Returns: undefined
+      }
       dashboard_beban_mekanik: {
         Args: { p_dari: string; p_sampai: string; p_tim?: string }
         Returns: {
@@ -841,6 +845,10 @@ export type Database = {
           tanggal: string
           work_order_id: string
         }[]
+      }
+      sesuaikan_stok: {
+        Args: { p_alasan: string; p_item: string; p_stok_fisik: number }
+        Returns: undefined
       }
       tugaskan_mekanik: {
         Args: { p_estimasi: string; p_mekanik: string[]; p_wo: string }
