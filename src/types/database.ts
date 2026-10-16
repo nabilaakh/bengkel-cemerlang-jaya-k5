@@ -767,6 +767,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buat_work_order: {
+        Args: {
+          p_keluhan: string
+          p_kepala_mekanik_id: string
+          p_odometer: number
+          p_vehicle_id: string
+        }
+        Returns: string
+      }
       dashboard_beban_mekanik: {
         Args: { p_dari: string; p_sampai: string; p_tim?: string }
         Returns: {
@@ -832,6 +841,14 @@ export type Database = {
           tanggal: string
           work_order_id: string
         }[]
+      }
+      tugaskan_mekanik: {
+        Args: { p_estimasi: string; p_mekanik: string[]; p_wo: string }
+        Returns: undefined
+      }
+      ubah_status_wo: {
+        Args: { p_catatan?: string; p_status: string; p_wo: string }
+        Returns: undefined
       }
     }
     Enums: {
