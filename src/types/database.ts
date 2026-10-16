@@ -767,6 +767,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      atur_diskon: {
+        Args: { p_alasan?: string; p_diskon: number; p_wo: string }
+        Returns: undefined
+      }
       buat_work_order: {
         Args: {
           p_keluhan: string
@@ -775,6 +779,10 @@ export type Database = {
           p_vehicle_id: string
         }
         Returns: string
+      }
+      catat_pembayaran: {
+        Args: { p_invoice: string; p_jumlah: number; p_metode: string }
+        Returns: undefined
       }
       catat_stok_masuk: {
         Args: { p_item: string; p_jumlah: number; p_keterangan?: string }
@@ -832,6 +840,10 @@ export type Database = {
           tanggal: string
         }[]
       }
+      hapus_item_tagihan: {
+        Args: { p_billing_item: string }
+        Returns: undefined
+      }
       laporan_laba: {
         Args: { p_dari: string; p_sampai: string }
         Returns: {
@@ -846,10 +858,19 @@ export type Database = {
           work_order_id: string
         }[]
       }
+      sesuaikan_harga_item: {
+        Args: { p_alasan: string; p_billing_item: string; p_harga: number }
+        Returns: boolean
+      }
       sesuaikan_stok: {
         Args: { p_alasan: string; p_item: string; p_stok_fisik: number }
         Returns: undefined
       }
+      tambah_item_tagihan: {
+        Args: { p_item: string; p_jumlah: number; p_wo: string }
+        Returns: string
+      }
+      terbitkan_invoice: { Args: { p_wo: string }; Returns: string }
       tugaskan_mekanik: {
         Args: { p_estimasi: string; p_mekanik: string[]; p_wo: string }
         Returns: undefined
