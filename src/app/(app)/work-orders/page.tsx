@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, AlertCircle } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Paginasi } from "@/components/Paginasi";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ import {
 import { rupiah, tanggal } from "@/lib/format";
 import { ambilProfilSaya } from "@/lib/profil";
 import { createClient } from "@/lib/supabase/server";
-import { STATUS_WO, type StatusWO } from "@/lib/status-wo";
 import { cn } from "@/lib/utils";
 
 const PER_HALAMAN = 20;
@@ -103,7 +102,7 @@ export default async function HalamanWorkOrders({
     );
   }
 
-  const { data: workOrders, count, error } = await kueri
+  const { data: workOrders, count } = await kueri
     .order("created_at", { ascending: false })
     .range((halaman - 1) * PER_HALAMAN, halaman * PER_HALAMAN - 1);
 

@@ -88,8 +88,8 @@ export function TombolAksiWO({
       setDialogBuka(false);
       setCatatan("");
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal mengubah status Work Order");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengubah status Work Order");
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,6 @@ import {
   User,
   Car,
   MessageCircle,
-  FileText,
   Gauge,
   Stethoscope,
   Pencil,
@@ -113,8 +112,8 @@ export function BagianDataMasuk({
       toast.success("Data masuk berhasil diperbarui");
       setEditKeluhan(false);
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal memperbarui data masuk");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal memperbarui data masuk");
     } finally {
       setSavingKeluhan(false);
     }
@@ -135,8 +134,8 @@ export function BagianDataMasuk({
       toast.success("Diagnosis berhasil disimpan");
       setEditDiagnosis(false);
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal menyimpan diagnosis");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menyimpan diagnosis");
     } finally {
       setSavingDiagnosis(false);
     }

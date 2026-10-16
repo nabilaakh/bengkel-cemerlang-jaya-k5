@@ -115,8 +115,8 @@ export default async function HalamanRincianWorkOrder({
 
   // Mekanik yang saat ini ditugaskan di WO
   const mekanikDitugaskan = (wo.work_order_mekanik || [])
-    .map((wm: any) => wm.mekanik)
-    .filter(Boolean);
+    .map((wm) => wm.mekanik)
+    .filter((m): m is { id: string; nama: string } => m !== null);
 
   // Indikator Terlambat (PRD 6.6)
   const hariIniStr = new Date().toISOString().split("T")[0];
@@ -126,8 +126,8 @@ export default async function HalamanRincianWorkOrder({
     ["menunggu", "dikerjakan", "tertunda"].includes(wo.status);
 
   // Sort riwayat status terbaru di atas
-  const riwayatStatus = (wo.wo_status_history || []).sort(
-    (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  const riwayatStatus = [...(wo.wo_status_history || [])].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
   return (

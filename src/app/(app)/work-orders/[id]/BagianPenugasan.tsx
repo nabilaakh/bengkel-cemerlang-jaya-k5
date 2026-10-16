@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Calendar, Check, AlertCircle, Loader2, Star, ShieldAlert } from "lucide-react";
+import { Users, Check, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,8 +104,8 @@ export function BagianPenugasan({
       if (error) throw error;
       toast.success("Penugasan mekanik berhasil disimpan");
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal menyimpan penugasan");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menyimpan penugasan");
     } finally {
       setSavingTugas(false);
     }
@@ -125,8 +125,8 @@ export function BagianPenugasan({
       if (error) throw error;
       toast.success("Tim Kepala Mekanik berhasil dipindahkan");
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal memindahkan tim");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal memindahkan tim");
     } finally {
       setSavingTim(false);
     }

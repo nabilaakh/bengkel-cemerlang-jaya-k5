@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { unggahFotoWorkOrder } from "@/lib/foto";
-import type { Database } from "@/types/database";
 
 interface TimMekanik {
   id: string;
@@ -134,8 +133,8 @@ export function FormWorkOrderBaru({
         setStatusPlat("baru");
         toast.info("Plat belum terdaftar. Silakan lengkapi data pelanggan dan kendaraan.");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Gagal mencari plat");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mencari plat");
     } finally {
       setMencariPlat(false);
     }
@@ -293,10 +292,11 @@ export function FormWorkOrderBaru({
 
       toast.success("Work Order berhasil dibuat!");
       router.push(`/work-orders/${newWoId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setPesanError(err.message || "Terjadi kesalahan saat menyimpan Work Order");
-      toast.error(err.message || "Gagal membuat Work Order");
+      const pesan = err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan Work Order";
+      setPesanError(pesan);
+      toast.error(pesan);
       setSubmitting(false);
     }
   };

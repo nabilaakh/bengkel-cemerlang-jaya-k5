@@ -7,7 +7,6 @@ import {
   Wrench,
   Upload,
   Image as ImageIcon,
-  CheckCircle2,
   AlertCircle,
   Loader2,
   ExternalLink,
@@ -92,8 +91,8 @@ export function BagianPengerjaan({
       });
       toast.success("Foto pengerjaan berhasil diunggah");
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal mengunggah foto");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengunggah foto");
     } finally {
       setUploading(false);
       if (filePengerjaanRef.current) filePengerjaanRef.current.value = "";
@@ -117,8 +116,8 @@ export function BagianPengerjaan({
       });
       toast.success("Foto kondisi akhir berhasil diunggah");
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal mengunggah foto");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengunggah foto");
     } finally {
       setUploading(false);
       if (fileAkhirRef.current) fileAkhirRef.current.value = "";
