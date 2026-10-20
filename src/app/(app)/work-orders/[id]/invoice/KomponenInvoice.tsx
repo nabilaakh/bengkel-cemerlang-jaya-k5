@@ -1,9 +1,21 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Printer, ChevronLeft, Wrench } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Printer,
+  ChevronLeft,
+  Wrench,
+  CreditCard,
+  Loader2,
+  CheckCircle2,
+  ExternalLink,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { rupiah, tanggal } from "@/lib/format";
+import { createClient } from "@/lib/supabase/client";
 
 interface KomponenInvoiceProps {
   workOrder: {
@@ -28,7 +40,10 @@ interface KomponenInvoiceProps {
     terbayar: number;
     status_bayar: "belum_bayar" | "sebagian" | "lunas";
     diterbitkan_at: string;
+    mayar_link?: string | null;
+    dibayar_online_at?: string | null;
   };
+  peran?: "owner" | "admin" | "kepala_mekanik";
   items: Array<{
     id: string;
     nama_item: string;
@@ -55,11 +70,148 @@ interface KomponenInvoiceProps {
 export function KomponenInvoice({
   workOrder,
   invoice,
+  peran,
   items,
   payments,
   bengkel,
 }: KomponenInvoiceProps) {
-  const sisa = Math.max(0, invoice.total - invoice.terbayar);
+  const router = useRouter();
+
+  // State status pembayaran lokal untuk reaktivitas real-time
+  const [statusBayar, setStatusBayar] = useState(invoice.status_bayar);
+  const [terbayar, setTerbayar] = useState(invoice.terbayar);
+  const [dibayarOnlineAt, setDibayarOnlineAt] = useState(invoice.dibayar_online_at || null);
+  const [sedangMembuatLink, setSedangMembuatLink] = useState(false);
+  const [sedangPolling, setSedangPolling] = useState(false);
+  const [detikTersisa, setDetikTersisa] = useState(300);
+
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+
+  const sisa = Math.max(0, invoice.total - terbayar);
+  const bolehBayar = peran === "admin" || peran === "owner" || !peran;
+
+  // Bersihkan timer saat unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
+
+  // Fungsi polling status invoice setiap 5 detik selama maksimal 5 menit (300 detik)
+  const mulaiPolling = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+
+    setSedangPolling(true);
+    setDetikTersisa(300);
+
+    // Timer countdown untuk tampilan user
+    countdownRef.current = setInterval(() => {
+      setDetikTersisa((prev) => {
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    let percobaan = 0;
+    const maxPercobaan = 60; // 60 kali * 5 detik = 300 detik (5 menit)
+
+    const intervalId = setInterval(async () => {
+      percobaan++;
+      try {
+        const supabase = createClient();
+        const { data: inv, error } = await supabase
+          .from("invoices")
+          .select("status_bayar, terbayar, dibayar_online_at")
+          .eq("id", invoice.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Gagal memeriksa status invoice:", error.message);
+          return;
+        }
+
+        if (inv) {
+          // Bila status berubah menjadi lunas
+          if (inv.status_bayar === "lunas") {
+            setStatusBayar("lunas");
+            setTerbayar(inv.terbayar);
+            setDibayarOnlineAt(inv.dibayar_online_at);
+            setSedangPolling(false);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            if (countdownRef.current) clearInterval(countdownRef.current);
+
+            toast.success("Pembayaran Berhasil Dikonfirmasi!", {
+              description: "Status invoice telah diperbarui menjadi Lunas.",
+            });
+            router.refresh();
+            return;
+          }
+
+          // Bila ada pembayaran sebagian
+          if (inv.terbayar !== terbayar) {
+            setTerbayar(inv.terbayar);
+            setStatusBayar(inv.status_bayar as "belum_bayar" | "sebagian" | "lunas");
+            router.refresh();
+          }
+        }
+
+        // Jika telah mencapai batas waktu 5 menit
+        if (percobaan >= maxPercobaan) {
+          setSedangPolling(false);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          toast.info("Pemeriksaan otomatis berakhir (5 menit)", {
+            description: "Silakan muat ulang halaman jika pembayaran telah diselesaikan.",
+          });
+        }
+      } catch (err) {
+        console.error("Kesalahan saat memeriksa invoice:", err);
+      }
+    }, 5000);
+
+    pollingRef.current = intervalId;
+  };
+
+  // Handler klik tombol Bayar Online
+  const handleBayarOnline = async () => {
+    try {
+      setSedangMembuatLink(true);
+
+      const res = await fetch("/api/pembayaran/buat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: invoice.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal membuat tautan pembayaran Mayar.");
+      }
+
+      if (data.link) {
+        window.open(data.link, "_blank", "noopener,noreferrer");
+        toast.success("Tautan pembayaran Mayar dibuka di tab baru.", {
+          description: "Sistem mulai memeriksa status pembayaran setiap 5 detik.",
+        });
+      }
+
+      // Mulai polling selama 5 menit
+      mulaiPolling();
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Terjadi kesalahan saat membuat pembayaran online."
+      );
+    } finally {
+      setSedangMembuatLink(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -73,6 +225,23 @@ export function KomponenInvoice({
         </Button>
 
         <div className="flex items-center gap-2">
+          {bolehBayar && statusBayar !== "lunas" && sisa > 0 && (
+            <Button
+              size="sm"
+              onClick={handleBayarOnline}
+              disabled={sedangMembuatLink || sedangPolling}
+              className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs shadow-sm font-medium"
+            >
+              {sedangMembuatLink ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <CreditCard className="mr-1.5 size-3.5" />
+              )}
+              {sedangPolling ? "Sedang Memeriksa..." : "Bayar Online"}
+              <ExternalLink className="ml-1.5 size-3 opacity-75" />
+            </Button>
+          )}
+
           <Button
             size="sm"
             onClick={() => window.print()}
@@ -83,6 +252,46 @@ export function KomponenInvoice({
           </Button>
         </div>
       </div>
+
+      {/* Banner Notifikasi Polling Webhook (Hanya muncul saat sedang polling) */}
+      {sedangPolling && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 print:hidden animate-pulse">
+          <div className="flex items-center gap-2.5">
+            <Loader2 className="size-4 animate-spin text-amber-600 shrink-0" />
+            <div>
+              <p className="font-semibold">Menunggu Pembayaran Online Mayar</p>
+              <p className="text-[11px] text-amber-700">
+                Sistem memeriksa status invoice secara berkala setiap 5 detik. Tab Mayar dapat Anda selesaikan pembayarannya.
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0 font-mono text-[11px] text-amber-700 font-medium">
+            Sisa waktu: {Math.floor(detikTersisa / 60)}:{(detikTersisa % 60).toString().padStart(2, "0")}
+          </div>
+        </div>
+      )}
+
+      {/* Banner Konfirmasi Lunas Online */}
+      {statusBayar === "lunas" && dibayarOnlineAt && (
+        <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-900 print:hidden">
+          <CheckCircle2 className="size-5 text-green-600 shrink-0" />
+          <div>
+            <p className="font-semibold">Invoice Telah Lunas Melalui Pembayaran Online</p>
+            <p className="text-[11px] text-green-700">
+              Dikonfirmasi lunas pada{" "}
+              <strong>
+                {tanggal(dibayarOnlineAt)}{" "}
+                {new Date(dibayarOnlineAt).toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                WIB
+              </strong>
+              .
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Lembar Invoice A4 Siap Cetak */}
       <div className="mx-auto max-w-4xl bg-white text-black p-8 md:p-12 rounded-xl border border-border shadow-sm print:border-none print:shadow-none print:p-0 print:max-w-none print:w-full print:m-0">
@@ -127,19 +336,30 @@ export function KomponenInvoice({
             <div className="mt-2">
               <span
                 className={`inline-block px-2.5 py-0.5 rounded text-[11px] font-bold tracking-wide uppercase border ${
-                  invoice.status_bayar === "lunas"
+                  statusBayar === "lunas"
                     ? "bg-green-50 text-green-700 border-green-300"
-                    : invoice.status_bayar === "sebagian"
+                    : statusBayar === "sebagian"
                     ? "bg-amber-50 text-amber-700 border-amber-300"
                     : "bg-red-50 text-red-700 border-red-300"
                 }`}
               >
-                {invoice.status_bayar === "lunas"
+                {statusBayar === "lunas"
                   ? "LUNAS"
-                  : invoice.status_bayar === "sebagian"
+                  : statusBayar === "sebagian"
                   ? "DIBAYAR SEBAGIAN"
                   : "BELUM DIBAYAR"}
               </span>
+
+              {statusBayar === "lunas" && dibayarOnlineAt && (
+                <div className="text-[10px] text-green-700 mt-1 font-medium">
+                  Dibayar online: {tanggal(dibayarOnlineAt)}{" "}
+                  {new Date(dibayarOnlineAt).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  WIB
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -184,7 +404,7 @@ export function KomponenInvoice({
           </div>
         </div>
 
-        {/* Tabel Baris Item Sesuai PRD 6.9 (Tanpa Modal, Tanpa Penyesuaian, Tanpa Harga Master) */}
+        {/* Tabel Baris Item Sesuai PRD 6.9 */}
         <div className="py-6">
           <table className="w-full text-xs text-left">
             <thead>
@@ -249,7 +469,7 @@ export function KomponenInvoice({
             <div className="flex justify-between text-gray-600">
               <span>Sudah Dibayar:</span>
               <span className="font-mono text-green-700 font-medium">
-                {rupiah(invoice.terbayar)}
+                {rupiah(terbayar)}
               </span>
             </div>
 
@@ -262,7 +482,7 @@ export function KomponenInvoice({
           </div>
         </div>
 
-        {/* Riwayat Pembayaran (Bila Ada) */}
+        {/* Riwayat Pembayaran */}
         {payments.length > 0 && (
           <div className="mt-8 border-t border-gray-200 pt-4 text-xs">
             <span className="font-bold text-gray-600 uppercase tracking-wider text-[10px]">
@@ -281,12 +501,14 @@ export function KomponenInvoice({
                 {payments.map((p) => (
                   <tr key={p.id}>
                     <td className="py-1">{tanggal(p.created_at)}</td>
-                    <td className="py-1 uppercase">{p.metode}</td>
+                    <td className="py-1 uppercase font-semibold">
+                      {p.metode === "mayar" ? "ONLINE (MAYAR)" : p.metode}
+                    </td>
                     <td className="py-1 text-right text-green-700 font-medium">
                       {rupiah(p.jumlah)}
                     </td>
                     <td className="py-1 text-right font-sans text-gray-500">
-                      {p.dicatat_oleh_nama || "Petugas"}
+                      {p.dicatat_oleh_nama || "Sistem / Otomatis"}
                     </td>
                   </tr>
                 ))}

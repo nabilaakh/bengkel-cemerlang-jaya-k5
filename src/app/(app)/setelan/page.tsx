@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FormBengkel } from "./FormBengkel";
 import { KelolaGaleri } from "./KelolaGaleri";
 import { KelolaLogo } from "./KelolaLogo";
+import { PaymentGatewaySettings } from "./PaymentGatewaySettings";
 
 export default async function HalamanSetelan() {
   const profil = await ambilProfilSaya();
@@ -33,12 +34,28 @@ export default async function HalamanSetelan() {
     );
   }
 
+  // Cek konfigurasi env Mayar di server (tanpa menampilkan nilainya)
+  const mayarTerhubung = Boolean(
+    process.env.MAYAR_API_KEY?.trim() && process.env.MAYAR_BASE_URL?.trim()
+  );
+  const mayarModeSandbox = Boolean(
+    process.env.MAYAR_BASE_URL?.includes(".io") ||
+      process.env.MAYAR_BASE_URL?.toLowerCase().includes("sandbox")
+  );
+
+  // Ambil 10 baris terakhir mayar_webhook_log (khusus Owner diizinkan oleh RLS)
+  const { data: webhookLogs } = await supabase
+    .from("mayar_webhook_log")
+    .select("id, event, mayar_invoice_id, status_proses, pesan_error, created_at")
+    .order("created_at", { ascending: false })
+    .limit(10);
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-text">Setelan Bengkel</h1>
         <p className="text-sm text-text-muted">
-          Kelola profil bengkel, identitas visual logo, dan galeri foto halaman depan.
+          Kelola profil bengkel, identitas visual logo, galeri foto, dan integrasi payment gateway.
         </p>
       </div>
 
@@ -58,6 +75,13 @@ export default async function HalamanSetelan() {
 
         {/* Pengelolaan Galeri Foto di Bucket Publik */}
         <KelolaGaleri galeriPaths={setelan.galeri_paths ?? []} />
+
+        {/* Bagian Payment Gateway Khusus Owner */}
+        <PaymentGatewaySettings
+          terhubung={mayarTerhubung}
+          modeSandbox={mayarModeSandbox}
+          logs={webhookLogs ?? []}
+        />
       </div>
     </div>
   );

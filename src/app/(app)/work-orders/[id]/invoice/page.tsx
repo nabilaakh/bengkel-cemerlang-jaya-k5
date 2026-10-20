@@ -30,7 +30,7 @@ export default async function InvoiceWorkOrder({
       customers (nama, telepon, alamat),
       billing_items (id, nama_item, jenis, jumlah, harga_dipakai),
       invoices (
-        id, nomor, subtotal, diskon, total, terbayar, status_bayar, diterbitkan_at,
+        id, nomor, subtotal, diskon, total, terbayar, status_bayar, diterbitkan_at, mayar_link, dibayar_online_at,
         payments (
           id, metode, jumlah, created_at,
           profiles!payments_dicatat_oleh_fkey (nama)
@@ -69,6 +69,8 @@ export default async function InvoiceWorkOrder({
         terbayar: number;
         status_bayar: "belum_bayar" | "sebagian" | "lunas";
         diterbitkan_at: string;
+        mayar_link?: string | null;
+        dibayar_online_at?: string | null;
         payments: Array<{
           id: string;
           metode: string;
@@ -134,6 +136,7 @@ export default async function InvoiceWorkOrder({
 
   return (
     <KomponenInvoice
+      peran={profil.peran}
       workOrder={{
         id: wo.id,
         nomor: wo.nomor,
@@ -156,6 +159,8 @@ export default async function InvoiceWorkOrder({
         terbayar: rawInvoice.terbayar,
         status_bayar: rawInvoice.status_bayar,
         diterbitkan_at: rawInvoice.diterbitkan_at,
+        mayar_link: rawInvoice.mayar_link || null,
+        dibayar_online_at: rawInvoice.dibayar_online_at || null,
       }}
       items={(wo.billing_items || []).map((it) => ({
         id: it.id,
